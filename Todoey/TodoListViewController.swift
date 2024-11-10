@@ -36,5 +36,30 @@ class TodoListViewController: UITableViewController {
         return cell
     }
     
+    
+    //MARK: - TableView Delegate Methods
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // Print the selected item to the console
+        // print("Selected item: \(itemArray[indexPath.row])")
+        
+        
+        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
+            tableView.cellForRow(at: indexPath)?.accessoryType = .none
+        } else {
+            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+        }
+        
+        
+        // Deselect the row after selection
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+    }
+    
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        
+        // Return a custom height for the rows
+        return 60.0
+    }
+    
 }
 
