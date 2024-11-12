@@ -97,5 +97,7 @@ class CategoryViewController: UITableViewController {
                 destinationVC.selectedCategory = categories[indexPath.row]
             }
         }
+        
+        
     }
 }

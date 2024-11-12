@@ -84,13 +84,17 @@ class TodoListViewController: UITableViewController {
             
             // what will happen once the user clicks the Add Item button on our UIAlert
             
-            let newItem = Item(context: self.context)
-            newItem.title = textField.text!
-            newItem.done = false
+            if let currentCategory = self.selectedCategory {
+                let newItem = Item(context: self.context)
+                newItem.title = textField.text!
+                newItem.done = false
+                newItem.parentCategory = currentCategory
+                
+                self.itemArray.append(newItem)
+                
+                self.saveItems()
+            }
             
-            self.itemArray.append(newItem)
-            
-            self.saveItems()
             
         }
                 
@@ -118,7 +122,19 @@ class TodoListViewController: UITableViewController {
         
     }
     
-    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+        
+        if let categoryPredicate = selectedCategory != nil ? NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!) : nil {
+            if let additionalPredicate = predicate {
+                let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+                request.predicate = compoundPredicate
+            } else {
+                request.predicate = categoryPredicate
+            }
+        } else {
+            request.predicate = predicate
+        }
+            
         
         do {
             itemArray = try context.fetch(request)
