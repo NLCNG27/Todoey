@@ -16,12 +16,20 @@ class TodoListViewController: UITableViewController {
     var itemArray = [Item]()
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
+    
+    var selectedCategory: Category? {
+        didSet {
+            // Load items once a category is set
+            loadItems()
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
-        loadItems()
+//        loadItems()
     }
     
     
