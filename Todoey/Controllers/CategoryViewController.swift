@@ -15,8 +15,6 @@ class CategoryViewController: UITableViewController {
     var categories = [Category]()
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-   
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategories()
@@ -30,9 +28,59 @@ class CategoryViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         cell.textLabel?.text = categories[indexPath.row].name
-        
-        
         return cell
+    }
+    
+    //MARK: - TableView Delegate Methods
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // Navigate to TodoListViewController
+        performSegue(withIdentifier: "goToItems", sender: self)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "goToItems" {
+            let destinationVC = segue.destination as! TodoListViewController
+            if let indexPath = tableView.indexPathForSelectedRow {
+                destinationVC.selectedCategory = categories[indexPath.row]
+            }
+        }
+    }
+    
+    
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { (action, sourceView, completionHandler) in
+            self.context.delete(self.categories[indexPath.row])
+            self.categories.remove(at: indexPath.row)
+            self.saveCategories()
+            completionHandler(true)
+        }
+        
+        let editAction = UIContextualAction(style: .normal, title: "Edit") { (action, sourceView, completionHandler) in
+            self.showEditAlert(for: indexPath)
+            completionHandler(true)
+        }
+        editAction.backgroundColor = .blue
+        
+        return UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+    }
+    
+    private func showEditAlert(for indexPath: IndexPath) {
+        let category = categories[indexPath.row]
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Edit Category", message: "Update the category name", preferredStyle: .alert)
+        let action = UIAlertAction(title: "Save", style: .default) { (action) in
+            category.name = textField.text
+            self.saveCategories()
+        }
+        
+        alert.addTextField { (alertTextField) in
+            alertTextField.text = category.name
+            textField = alertTextField
+        }
+        
+        alert.addAction(action)
+        present(alert, animated: true, completion: nil)
     }
     
     //MARK: - Data Manipulation Methods
@@ -42,18 +90,15 @@ class CategoryViewController: UITableViewController {
         } catch {
             print("Error saving category \(error)")
         }
-        
         tableView.reloadData()
     }
     
     func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
         do {
-            // No explicit cast is necessary here if Category is a proper NSManagedObject subclass
             categories = try context.fetch(request)
         } catch {
             print("Error loading categories \(error)")
         }
-        
         tableView.reloadData()
     }
 
@@ -64,13 +109,8 @@ class CategoryViewController: UITableViewController {
         let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
         
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
-            guard let categoryName = textField.text, !categoryName.isEmpty else {
-                // Prevent adding a category with an empty name
-                return
-            }
-            
             let newCategory = Category(context: self.context)
-            newCategory.name = categoryName
+            newCategory.name = textField.text!
             self.categories.append(newCategory)
             self.saveCategories()
         }
@@ -83,21 +123,5 @@ class CategoryViewController: UITableViewController {
         alert.addAction(action)
         
         present(alert, animated: true, completion: nil)
-    }
-    
-    //MARK: - TableView Delegate Methods
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "goToItems", sender: self)
-    }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "goToItems" {
-            let destinationVC = segue.destination as! TodoListViewController
-            if let indexPath = tableView.indexPathForSelectedRow {
-                destinationVC.selectedCategory = categories[indexPath.row]
-            }
-        }
-        
-        
     }
 }

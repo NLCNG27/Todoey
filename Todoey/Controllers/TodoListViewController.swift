@@ -10,108 +10,70 @@ import UIKit
 import CoreData
 
 class TodoListViewController: UITableViewController {
-    
-    
 
     var itemArray = [Item]()
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
-    
     var selectedCategory: Category? {
         didSet {
-            // Load items once a category is set
             loadItems()
         }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
-        
-//        loadItems()
     }
     
-    
     //MARK: - Tableview Datasource Methods
-
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return itemArray.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         let item = itemArray[indexPath.row]
         cell.textLabel?.text = item.title
-        
-        cell.accessoryType = item.done == true ? .checkmark : .none
-        
+        cell.accessoryType = item.done ? .checkmark : .none
         return cell
     }
     
-    
     //MARK: - TableView Delegate Methods
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
-//        context.delete(itemArray[indexPath.row])
-//        itemArray.remove(at: indexPath.row)
-        
-        
-        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
-        
-        saveItems()
-        
-        // Deselect the row after selection
-        tableView.deselectRow(at: indexPath, animated: true)
-        
-    }
-    
-    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        
-        // Return a custom height for the rows
-        return 60.0
-    }
-    
-    //MARK: - Add New Items
-    
-    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
-        
-        var textField = UITextField()
-        let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
-            
-            // what will happen once the user clicks the Add Item button on our UIAlert
-            
-            if let currentCategory = self.selectedCategory {
-                let newItem = Item(context: self.context)
-                newItem.title = textField.text!
-                newItem.done = false
-                newItem.parentCategory = currentCategory
-                
-                self.itemArray.append(newItem)
-                
-                self.saveItems()
-            }
-            
-            
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { (action, view, completionHandler) in
+            self.context.delete(self.itemArray[indexPath.row])
+            self.itemArray.remove(at: indexPath.row)
+            self.saveItems()
+            completionHandler(true)
         }
-                
+        
+        let editAction = UIContextualAction(style: .normal, title: "Edit") { (action, view, completionHandler) in
+            self.showEditAlert(for: indexPath)
+            completionHandler(true)
+        }
+        editAction.backgroundColor = .blue
+        
+        return UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+    }
+    
+    private func showEditAlert(for indexPath: IndexPath) {
+        let item = itemArray[indexPath.row]
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Edit Item", message: "Update the item title", preferredStyle: .alert)
+        let action = UIAlertAction(title: "Save", style: .default) { (action) in
+            item.title = textField.text
+            self.saveItems()
+        }
         
         alert.addTextField { (alertTextField) in
-            alertTextField.placeholder = "Create new item"
+            alertTextField.text = item.title
             textField = alertTextField
-            
         }
+        
         alert.addAction(action)
-        
         present(alert, animated: true, completion: nil)
-        
     }
     
     //MARK: - Model Manipulation Methods
-    
     func saveItems() {
         do {
             try context.save()
@@ -119,58 +81,25 @@ class TodoListViewController: UITableViewController {
             print("Error saving context \(error)")
         }
         self.tableView.reloadData()
-        
     }
     
     func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
         
-        if let categoryPredicate = selectedCategory != nil ? NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!) : nil {
-            if let additionalPredicate = predicate {
-                let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
-                request.predicate = compoundPredicate
-            } else {
-                request.predicate = categoryPredicate
-            }
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
         } else {
-            request.predicate = predicate
+            request.predicate = categoryPredicate
         }
-            
         
         do {
             itemArray = try context.fetch(request)
         } catch {
-            print("Error fetching data from \(error)")
+            print("Error fetching data \(error)")
         }
-        
         tableView.reloadData()
-        
     }
+
 }
 
-//MARK: - Search Bar Methods
 
-extension TodoListViewController: UISearchBarDelegate {
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        
-        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-        
-        request.predicate = predicate
-        
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        
-        loadItems(with: request)
-        
-    }
-    
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchBar.text?.count == 0 {
-            loadItems()
-            
-            DispatchQueue.main.async {
-                searchBar.resignFirstResponder()
-            }
-            
-        }
-    }
-}
