@@ -21,6 +21,7 @@ class TodoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
     }
     
     //MARK: - Tableview Datasource Methods
@@ -72,6 +73,22 @@ class TodoListViewController: UITableViewController {
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
     }
+    
+    // MARK: - TableView Delegate Methods for Cell Spacing
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 80 // Adjust this value to set the cell height
+    }
+
+    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+        let footerView = UIView()
+        footerView.backgroundColor = .clear // Make the space transparent
+        return footerView
+    }
+
+    override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return 10 // Adjust this value to set the space between cells
+    }
+    
     
     //MARK: - Model Manipulation Methods
     func saveItems() {
